@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grafos — Resumo completo para a prova final | Algoritmos e Estruturas de Dados</title>
+<meta name="description" content="Resumo completo de grafos: representação, DFS, componentes conexas, BFS, Dijkstra e min-heap, com simulações passo a passo e prova final modelo.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<header class="topbar">
+  <button class="btn-ghost" id="menuBtn" aria-label="Abrir índice">☰<span class="lbl"> Índice</span></button>
+  <a class="brand" href="index.html">Grafos<span>.</span>AED</a>
+  <nav>
+    <a class="active" href="index.html">Resumo</a>
+    <a href="prova.html">Prova modelo</a>
+    <button class="btn-ghost" id="themeBtn" aria-label="Alternar tema claro/escuro">Tema</button>
+  </nav>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc"><h4>Neste resumo</h4></aside>
+
+<main id="content">
+
+<!-- ===================== 0. VISÃO GERAL ===================== -->
+<section class="hero" id="visao">
+  <div class="meta">Algoritmos e Estruturas de Dados · 2026/02</div>
+  <h1>Grafos: do modelo ao Dijkstra</h1>
+  <p class="lead">Tudo o que as aulas e os handouts cobrem, em uma página: definições, matriz de adjacências em C, DFS, componentes conexas, BFS, Dijkstra e min-heap — com simulações passo a passo e uma prova final modelo para treinar.</p>
+  <p><a class="cta" href="prova.html">Fazer a prova modelo →</a></p>
+
+  <div class="cards">
+    <a class="card" href="#grafos"><span class="n">01</span><b>Introdução a grafos</b><small>G = (V, E), tipos, graus, matriz de adjacências e modelagem.</small></a>
+    <a class="card" href="#repr"><span class="n">02</span><b>Representação em C</b><small><code>double **</code>, <code>malloc</code> em dois níveis, <code>INFINITY</code>, <code>free</code>.</small></a>
+    <a class="card" href="#dfs"><span class="n">03</span><b>DFS e componentes conexas</b><small>Caminhos, componente conexo, IDENTIFICA-COMPONENTES.</small></a>
+    <a class="card" href="#bfs"><span class="n">04</span><b>Caminhos mínimos (sem pesos)</b><small>Busca em largura, fila e fila circular.</small></a>
+    <a class="card" href="#dijkstra"><span class="n">05</span><b>Grafos com pesos</b><small>Dijkstra, pesos negativos, min-heap e O(E log V).</small></a>
+    <a class="card" href="#revisao"><span class="n">06</span><b>Revisão final</b><small>Tabela de complexidades, pegadinhas, receitas e checklist.</small></a>
+  </div>
+
+  <div class="callout key"><span class="lbl">Fio condutor da matéria</span>
+    <p>Um problema real vira um <b>grafo</b> (4 perguntas de modelagem) → guardamos o grafo numa <b>matriz de adjacências</b> → perguntamos "está tudo conectado?" (<b>DFS / componentes</b>) → "qual o caminho mais curto?" (<b>BFS</b> sem pesos, <b>Dijkstra</b> com pesos) → para o Dijkstra ficar rápido usamos um <b>min-heap</b>.</p>
+  </div>
+  <p class="legend">Fonte: slides e handouts de Igor Montagner (Insper). Trechos marcados com <span class="tag c">complemento</span> não aparecem nos PDFs, mas completam a explicação (ex.: complexidades de DFS/BFS com matriz).</p>
+</section>
+
+<!-- ===================== 1. INTRODUÇÃO ===================== -->
+<section id="grafos">
+<h2><span class="num">1</span>Introdução a grafos</h2>
+
+<h3>Por que grafos?</h3>
+<p>Exemplo das aulas — chuvas no Rio Grande do Sul (2024) e deslizamentos no litoral de São Paulo (2023). Perguntas que queremos responder com um computador:</p>
+<ul>
+  <li>Alguma área ficou <b>isolada</b>? → <i>componentes conexas</i></li>
+  <li>Como <b>sair de casa até um destino</b>? → <i>caminhos</i> / <i>caminho mínimo</i></li>
+  <li>Qual o <b>mínimo de intervenções</b> para restaurar todos os pontos isolados? → conectar componentes</li>
+</ul>
+<p>Outros usos citados: dependências entre partes de uma produção, traçar caminhos num mapa, conectar cidades com o mínimo de ligações, criar agrupamentos ou equipes.</p>
+
+<h3>Definição formal</h3>
+<div class="callout def"><span class="lbl">Definição — Grafo</span>
+  <p>Um grafo é uma tupla <span class="math">G = (V, E)</span> com dois conjuntos:</p>
+  <ul>
+    <li><span class="math">V = {0 … N−1}</span> — os <b>vértices</b>, numerados de 0 até <span class="math">N = |V|</span>;</li>
+    <li><span class="math">E = {(v, w) | v, w ∈ V; v ≠ w}</span> — as <b>arestas</b> (<i>edges</i>): pares de vértices. <b>Toda aresta é direcionada</b>: tem um início <span class="math">v</span> e um destino <span class="math">w</span>.</li>
+  </ul>
+  <p>Se o grafo tem <b>pesos</b>, há ainda uma função <span class="math">w : E → ℝ</span> que dá um número real a cada aresta.</p>
+</div>
+<p>Nesta disciplina <b>não há loops</b> (<span class="math">v ≠ w</span>) nem <b>mais de uma aresta por par</b> de vértices. (Alguns handouts numeram de 1 a N; nos exercícios de modelagem e em C usamos 0 a N−1.)</p>
+
+<h3>Tipos de grafos</h3>
+<table class="tbl">
+  <tr><th></th><th>Sem pesos</th><th>Com pesos</th></tr>
+  <tr><th>Direcionado</th><td>associação pode ou não ser bidirecional; aresta com seta</td><td>cada aresta tem um número real (custo, distância, tempo…)</td></tr>
+  <tr><th>Não direcionado</th><td>para toda aresta <span class="math">(v,w)</span> existe também <span class="math">(w,v)</span>; desenhada sem setas</td><td>as duas direções têm o mesmo peso</td></tr>
+</table>
+<div class="callout warn"><span class="lbl">Atenção — contagem de arestas</span>
+  <p>Pela definição formal, um grafo <b>não direcionado</b> contém as duas direções: cada linha desenhada corresponde a <b>2 pares</b> em <span class="math">E</span> (e a matriz tem 2 uns por linha desenhada). Se a questão pedir "número de arestas" de um grafo não direcionado, explicite se está contando <i>linhas desenhadas</i> ou <i>pares em E</i>.</p>
+</div>
+
+<h3>Graus</h3>
+<ul>
+  <li><b>Grau de entrada</b> de um vértice: número de arestas que <i>chegam</i> nele.</li>
+  <li><b>Grau de saída</b>: número de arestas que <i>saem</i> dele.</li>
+  <li>Em grafos <b>não direcionados</b> falamos só em <b>grau</b> — entrada e saída são iguais.</li>
+</ul>
+<div class="grid2">
+  <figure class="fig"><div data-g="s_dir"></div><figcaption>Grafo direcionado: |V| = 5, |E| = 6</figcaption></figure>
+  <div><div class="scroll" data-trace="degrees" data-g="s_dir"></div>
+  <p>Conferência: soma dos graus de entrada = soma dos graus de saída = <b>|E| = 6</b>. Vértice 0: menor grau de entrada (0) e maior grau de saída (2). Os vértices 1 e 3 têm o maior grau de entrada (2).</p></div>
+</div>
+
+<h3>Matriz de adjacências</h3>
+<p>É a representação usada na disciplina: uma matriz quadrada <span class="math">A ∈ ℝ<sup>N×N</sup></span>.</p>
+<div class="grid2">
+  <div class="callout def"><span class="lbl">Sem pesos</span><p class="math">A[i][j] = 1 se (i, j) ∈ E; 0 caso contrário</p></div>
+  <div class="callout def"><span class="lbl">Com pesos</span><p class="math">A[i][j] = w(i, j) se (i, j) ∈ E; ∞ caso contrário</p></div>
+</div>
+<div class="grid2">
+  <figure class="fig"><div data-g="s_dir"></div><div class="scroll" data-trace="matrix" data-g="s_dir"></div><figcaption>Matriz sem pesos do grafo acima (linha = origem, coluna = destino)</figcaption></figure>
+  <figure class="fig"><div data-g="s_pesos"></div><div class="scroll" data-trace="matrix" data-g="s_pesos" data-weighted="1"></div><figcaption>Mesmo desenho com pesos: ∞ = não há aresta</figcaption></figure>
+</div>
+
+<div class="callout key"><span class="lbl">Perguntas de reflexão do slide — respostas</span>
+  <ul>
+    <li><b>Quantas arestas chegam em <span class="math">j</span>?</b> Soma da <b>coluna j</b> (grau de entrada).</li>
+    <li><b>Quantas arestas saem de <span class="math">i</span>?</b> Soma da <b>linha i</b> (grau de saída).</li>
+    <li><b>Grafo não direcionado?</b> A matriz é <b>simétrica</b>: <span class="math">A[i][j] = A[j][i]</span>; grau = soma da linha = soma da coluna.</li>
+    <li><b>Com pesos?</b> A posição guarda o peso; ausência de aresta vira <b>∞</b> (não 0, pois 0 pode ser um peso válido e, nos algoritmos de menor caminho, ∞ nunca "ganha" de um caminho real).</li>
+  </ul>
+</div>
+
+<h3>Modelagem: 4 perguntas para transformar um problema em grafo</h3>
+<ol>
+  <li>O que cada <b>vértice</b> representa?</li>
+  <li>Que <b>relação</b> entre vértices uma aresta representa?</li>
+  <li>Essa relação tem <b>direção</b> ou é sempre simétrica?</li>
+  <li>Essa relação tem <b>pesos/preferências</b> ou todas as arestas são equivalentes?</li>
+</ol>
+<h4>Exemplo do handout: influência em redes sociais</h4>
+<p>Log: usuários, posts de cada usuário e quem curtiu cada post. Queremos saber: (1) quais usuários postaram algo curtido; (2) qual usuário tem mais curtidas recebidas; (3) qual usuário mais curtiu posts.</p>
+<ul>
+  <li><b>Vértices:</b> usuários. <b>Aresta <span class="math">u → v</span>:</b> "u curtiu algum post de v". <b>Direcionado:</b> sim (curtir não é recíproco). <b>Pesos:</b> não são necessários (opcionalmente, o nº de curtidas).</li>
+</ul>
+<div class="grid2">
+  <figure class="fig"><div data-g="s_rede"></div><figcaption>Grafo do log do handout (as duas curtidas do usuário 1 em posts do 5 viram uma só aresta)</figcaption></figure>
+  <div class="scroll" data-trace="matrix" data-g="s_rede"></div>
+</div>
+<ol>
+  <li><b>Quem postou algo curtido?</b> Colunas com pelo menos um 1 (grau de entrada &gt; 0). Aqui: 1, 2, 3 e 5 (o 4 nunca foi curtido).</li>
+  <li><b>Maior número de curtidas recebidas?</b> Coluna de maior soma (maior grau de entrada): usuário <b>5</b> (curtido por 1, 2 e 3).</li>
+  <li><b>Quem mais curtiu?</b> Linha de maior soma (maior grau de saída): empate entre <b>2</b> e <b>3</b> (3 cada).</li>
+</ol>
+</section>
+
+<!-- ===================== 2. REPRESENTAÇÃO COMPUTACIONAL ===================== -->
+<section id="repr">
+<h2><span class="num">2</span>Representação computacional (em C)</h2>
+<p><b>Formal → computacional.</b> <span class="math">V</span> pode ser representado só pelos números: guardamos <span class="math">|V| = Nv</span>. <span class="math">E</span> vira a matriz <span class="math">A</span> (<span class="math">Nv × Nv</span>) definida na seção anterior.</p>
+
+<h3>Array de arrays: <code>double **</code></h3>
+<p>Cada linha é um array (<code>double *</code>); a matriz é um array cujos elementos são essas linhas (<code>double **</code>). O acesso é natural: <code>mat[2][5] = 5;</code> (linha 2, coluna 5).</p>
+<figure class="fig">
+<svg viewBox="0 0 560 190" class="graph-svg" role="img" aria-label="Array de arrays">
+  <g font-family="var(--mono)" font-size="13" fill="currentColor">
+    <text x="8" y="22" fill="var(--accent)" font-weight="700">mat (double **)</text>
+    <g stroke="var(--ink)" stroke-width="1.5" fill="var(--surface)">
+      <rect x="10" y="34" width="56" height="30"/><rect x="10" y="64" width="56" height="30"/><rect x="10" y="94" width="56" height="30"/><rect x="10" y="124" width="56" height="30"/>
+    </g>
+    <g fill="var(--ink)" text-anchor="middle"><text x="38" y="54">mat[0]</text><text x="38" y="84">mat[1]</text><text x="38" y="114">mat[2]</text><text x="38" y="144">mat[3]</text></g>
+    <g stroke="var(--accent)" stroke-width="1.6" fill="none"><path d="M66 49 H150"/><path d="M66 79 H150"/><path d="M66 109 H150"/><path d="M66 139 H150"/></g>
+    <g stroke="var(--ink)" stroke-width="1.5" fill="var(--surface)">
+      <rect x="152" y="34" width="60" height="30"/><rect x="212" y="34" width="60" height="30"/><rect x="272" y="34" width="60" height="30"/><rect x="332" y="34" width="60" height="30"/>
+      <rect x="152" y="64" width="60" height="30"/><rect x="212" y="64" width="60" height="30"/><rect x="272" y="64" width="60" height="30"/><rect x="332" y="64" width="60" height="30"/>
+      <rect x="152" y="94" width="60" height="30"/><rect x="212" y="94" width="60" height="30"/><rect x="272" y="94" width="60" height="30"/><rect x="332" y="94" width="60" height="30"/>
+      <rect x="152" y="124" width="60" height="30"/><rect x="212" y="124" width="60" height="30"/><rect x="272" y="124" width="60" height="30"/><rect x="332" y="124" width="60" height="30"/>
+    </g>
+    <g fill="var(--muted)" text-anchor="middle" font-size="11">
+      <text x="182" y="52">[0][0]</text><text x="242" y="52">[0][1]</text><text x="302" y="52">[0][2]</text><text x="362" y="52">[0][3]</text>
+      <text x="182" y="82">[1][0]</text><text x="242" y="82">[1][1]</text><text x="302" y="82">[1][2]</text><text x="362" y="82">[1][3]</text>
+      <text x="182" y="112">[2][0]</text><text x="242" y="112">[2][1]</text><text x="302" y="112">[2][2]</text><text x="362" y="112">[2][3]</text>
+      <text x="182" y="142">[3][0]</text><text x="242" y="142">[3][1]</text><text x="302" y="142">[3][2]</text><text x="362" y="142">[3][3]</text>
+    </g>
+    <text x="410" y="54" fill="var(--muted)" font-size="12">← 1 malloc por linha</text>
+    <text x="410" y="84" fill="var(--muted)" font-size="12">(4 linhas)</text>
+    <text x="10" y="176" fill="var(--muted)" font-size="12">nível 1: 1 malloc (4 ponteiros) + nível 2: 4 mallocs (4 doubles cada) = 5 mallocs</text>
+  </g>
+</svg>
+<figcaption>Matriz 4×4 (4 vértices) como array de arrays</figcaption></figure>
+
+<h3>Alocação, inicialização e liberação</h3>
+<ol>
+  <li><b>Nível 1</b> — array com as V linhas: <code>double **mat = malloc(4 * sizeof(double *));</code></li>
+  <li><b>Nível 2</b> — V alocações, uma por linha: <code>for (int i = 0; i &lt; 4; i++) mat[i] = malloc(4 * sizeof(double));</code></li>
+  <li><b>Inicializar</b> — o <code>malloc</code> <u>não</u> inicializa: sem pesos → <b>0</b>; com pesos → <b>INFINITY</b> (<code>#include &lt;math.h&gt;</code>; <code>double infinity = INFINITY;</code>).</li>
+  <li><b>Liberar</b> — também em dois níveis: primeiro cada linha, depois o array de ponteiros.</li>
+</ol>
+<pre data-test="c1"><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;math.h&gt;
+
+/* V vértices; ponderado = 0 (matriz de 0/1) ou 1 (pesos, sem aresta = INFINITY) */
+double **cria_matriz(int V, int ponderado) {
+    double **mat = malloc(V * sizeof(double *));      /* nível 1: V ponteiros */
+    for (int i = 0; i &lt; V; i++) {
+        mat[i] = malloc(V * sizeof(double));          /* nível 2: uma linha */
+        for (int j = 0; j &lt; V; j++)
+            mat[i][j] = ponderado ? INFINITY : 0;
+    }
+    return mat;
+}
+
+void libera_matriz(double **mat, int V) {
+    for (int i = 0; i &lt; V; i++) free(mat[i]);         /* primeiro as linhas */
+    free(mat);                                        /* depois o array de ponteiros */
+}</code></pre>
+<div class="callout key"><span class="lbl">Para lembrar</span>
+  <ul>
+    <li>Matriz de V vértices = <b>V + 1 chamadas</b> a <code>malloc</code> e <b>V + 1 a <code>free</code></b>.</li>
+    <li>Memória: <b>O(V²)</b> independentemente do número de arestas. Testar se <span class="math">(i,j) ∈ E</span> é <b>O(1)</b> (<code>EH_VIZINHO</code>); listar os vizinhos de um vértice é <b>O(V)</b> (percorrer a linha).</li>
+    <li>Sub-rotinas supostas nos handouts: <code>NVERTICES(G)</code> e <code>EH_VIZINHO(G, i, j)</code>.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================== 3. DFS E COMPONENTES ===================== -->
+<section id="dfs">
+<h2><span class="num">3</span>Caminhos, componentes conexas e DFS</h2>
+
+<h3>Caminho</h3>
+<div class="callout def"><span class="lbl">Definição — Caminho</span>
+  <p>Um caminho de <b>tamanho <span class="math">k</span></b> em <span class="math">G = (V, E)</span> é uma sequência de vértices <span class="math">v<sub>0</sub>, v<sub>1</sub>, …, v<sub>k</sub></span> tal que cada aresta <span class="math">(v<sub>i</sub>, v<sub>i+1</sub>)</span> está em <span class="math">E</span>. Ele <b>começa</b> em <span class="math">v<sub>0</sub></span> e <b>termina</b> em <span class="math">v<sub>k</sub></span>. (Em grafos sem pesos, tamanho = nº de arestas.)</p>
+</div>
+
+<h3>Componente conexo</h3>
+<div class="callout def"><span class="lbl">Definição — Componente conexo (grafo não direcionado, sem pesos)</span>
+  <p>Seja <span class="math">G = (V, A)</span>. Um subconjunto <span class="math">C ⊆ V</span> é um componente conexo se e somente se:</p>
+  <ol>
+    <li>para todo par <span class="math">v, w ∈ C</span> existe um caminho que começa em <span class="math">v</span> e termina em <span class="math">w</span>;</li>
+    <li>para todo <span class="math">v ∈ C</span> e <span class="math">w ∈ V − C</span>, <b>não</b> existe caminho entre <span class="math">v</span> e <span class="math">w</span>.</li>
+  </ol>
+</div>
+<p><b>Interpretação:</b> componentes são grupos de vértices isolados uns dos outros — há caminho entre vértices do <i>mesmo</i> componente e nenhum entre componentes <i>diferentes</i>. "Existem regiões isoladas?" ⇔ "O grafo tem mais de um componente conexo?" (vértices = cidades, arestas = estradas).</p>
+<div class="grid2">
+  <div class="callout key"><span class="lbl">Mínimo e máximo</span><p>Todo grafo com |V| &gt; 0 tem <b>no mínimo 1</b> (grafo todo conectado) e <b>no máximo |V|</b> componentes (nenhuma aresta: cada vértice sozinho).</p></div>
+  <div class="callout key"><span class="lbl">Caminho que sai de C?</span><p><b>Não é possível.</b> Se um caminho entre dois vértices de C passasse por um vértice fora de C, esse vértice seria alcançável a partir de C, contrariando a condição 2.</p></div>
+</div>
+
+<h3>Busca em profundidade (DFS)</h3>
+<ul>
+  <li>Algoritmo <b>recursivo e curto</b> que visita <b>todos os vértices acessíveis a partir da raiz</b>.</li>
+  <li>Precisa ser chamado <b>mais de uma vez</b> para cobrir o grafo todo se ele tiver vários componentes.</li>
+  <li>Serve para: contar/identificar componentes, encontrar ciclos, ordenação topológica.</li>
+</ul>
+<pre class="pseudo"><code>DFS(G, v, visitado)
+    visitado[v] &lt;- VERDADEIRO
+    PARA CADA VIZINHO w DE v FAÇA
+        SE NÃO visitado[w] ENTÃO
+            DFS(G, w, visitado)</code></pre>
+<p>Nos exercícios, "a ordem de visitação dos vizinhos é alfabética" (ou crescente). Numere os vértices na ordem em que são <b>visitados pela 1ª vez</b> (pré-ordem).</p>
+
+<h4>Simulação: DFS a partir de D (vizinhos em ordem alfabética)</h4>
+<div class="grid2">
+  <figure class="fig"><div data-g="s_comp" data-start="D"></div><figcaption>Dois componentes: {A, B, C, D} e {F, G, I, J}</figcaption></figure>
+  <div>
+    <p>Ordem visitada: <b>D → B → A → C</b>. Os vértices F, G, I, J ficam <b>sem número</b>: D não os alcança — eles são outro componente.</p>
+    <p>Em A, o vizinho C ainda não foi visitado e vamos a ele; em C, o vizinho D <b>já foi visitado e não é o predecessor (A)</b> ⇒ achamos um <b>ciclo</b> (D-B-A-C).</p>
+  </div>
+</div>
+<div class="callout key"><span class="lbl">Propriedades a saber de cor</span>
+  <ol>
+    <li>Se há <b>um só componente</b>, uma DFS visita <b>todos</b> os nós.</li>
+    <li>Quando há ciclo, em algum momento encontramos um vizinho <b>já visitado que não é o predecessor</b>.</li>
+    <li>Se a DFS inicia num componente, os vértices dos <b>outros componentes ficam sem número</b> ⇒ precisamos de <b>uma DFS por componente</b>.</li>
+  </ol>
+</div>
+
+<h3>Algoritmo IDENTIFICA-COMPONENTES(G, LABELS)</h3>
+<p><b>Saída:</b> um array <code>LABELS</code> em que cada vértice recebe o identificador (a partir de 1) do seu componente; dois vértices estão no mesmo componente ⇔ mesmo rótulo. Para o grafo acima: <code>[1, 1, 1, 1, 2, 2, 2, 2]</code> (se começamos por A, B, C ou D) ou <code>[2, 2, 2, 2, 1, 1, 1, 1]</code> (se começamos por F, G, I ou J) — <b>ambas corretas</b>.</p>
+<p><b>Dicas do handout:</b> (1) <code>LABELS</code> chega <u>não inicializado</u> — inicialize com um valor que não seja rótulo válido (ex.: <b>0</b> ou −1) para distinguir "não visitado" de "já rotulado"; (2) pode ser preciso criar mais de uma função; (3) o máximo de componentes é |V|.</p>
+<pre class="pseudo"><code>IDENTIFICA-COMPONENTES(G, LABELS)
+    N &lt;- NVERTICES(G)
+    PARA v &lt;- 0 ATÉ N-1 FAÇA LABELS[v] &lt;- 0        # 0 = ainda sem rótulo
+    c &lt;- 0
+    PARA v &lt;- 0 ATÉ N-1 FAÇA
+        SE LABELS[v] = 0 ENTÃO                     # v ainda não foi alcançado por nenhuma DFS
+            c &lt;- c + 1                             # novo componente
+            ROTULA(G, v, c, LABELS)               # DFS marcando todo o componente
+    DEVOLVA c
+
+ROTULA(G, v, c, LABELS)                           # é uma DFS: LABELS faz o papel de "visitado"
+    LABELS[v] &lt;- c
+    PARA w &lt;- 0 ATÉ NVERTICES(G)-1 FAÇA
+        SE EH_VIZINHO(G, v, w) E LABELS[w] = 0 ENTÃO
+            ROTULA(G, w, c, LABELS)</code></pre>
+<pre data-test="c2"><code>void rotula(double **A, int V, int v, int c, int *labels) {
+    labels[v] = c;
+    for (int w = 0; w &lt; V; w++)
+        if (A[v][w] != 0 &amp;&amp; labels[w] == 0)
+            rotula(A, V, w, c, labels);
+}
+
+/* devolve o número de componentes; labels[v] em 1..c */
+int identifica_componentes(double **A, int V, int *labels) {
+    for (int v = 0; v &lt; V; v++) labels[v] = 0;
+    int c = 0;
+    for (int v = 0; v &lt; V; v++)
+        if (labels[v] == 0) { c++; rotula(A, V, v, c, labels); }
+    return c;
+}</code></pre>
+<p><span class="tag c">complemento</span> Com matriz de adjacências, cada vértice varre sua linha (O(V)) e é rotulado uma única vez ⇒ <b>O(V²)</b> no total (com listas de adjacência seria O(V + E)).</p>
+<p><b>Problemas relacionados:</b> segmentação de imagens (grafos de pixels), dependências em projetos, agrupamentos (<i>clustering</i>).</p>
+</section>
+
+<!-- ===================== 4. BFS ===================== -->
+<section id="bfs">
+<h2><span class="num">4</span>Caminhos mínimos em grafos sem pesos (BFS)</h2>
+<p><b>Problema:</b> dados vértices <span class="math">s</span> e <span class="math">t</span>, encontrar o caminho de <b>menor tamanho</b> entre eles (ex.: navegação). Sem pesos: <b>tamanho do caminho = número de arestas</b>.</p>
+
+<h3>Ideias centrais (think-pair-share)</h3>
+<div class="callout key"><span class="lbl">1 · Existe um só caminho mínimo?</span>
+  <p><b>Não.</b> Podem existir vários caminhos do mesmo tamanho mínimo. Contra-exemplo: num ciclo de 4 vértices A-B-D e A-C-D, ambos A→B→D e A→C→D têm tamanho 2.</p></div>
+<div class="callout key"><span class="lbl">2 · A DFS encontra o menor caminho?</span>
+  <p><b>Não.</b> A DFS acha <i>um</i> caminho, que pode ser longo. No grafo abaixo, de A a G, a DFS (vizinhos em ordem alfabética) segue A→B→C→D→E→G (5 arestas), mas o mínimo é A→F→G (2 arestas).</p></div>
+<div class="grid2">
+  <figure class="fig"><div data-g="s_bfs" data-opts='{"nodeClass":{"A":"start","G":"end"},"edgeClass":{"A-B":"hl","B-C":"hl","C-D":"hl","D-E":"hl","E-G":"hl"}}'></div><figcaption>Caminho encontrado pela DFS (5 arestas)</figcaption></figure>
+  <figure class="fig"><div data-g="s_bfs" data-opts='{"nodeClass":{"A":"start","G":"end"},"edgeClass":{"A-F":"hl","F-G":"hl"}}'></div><figcaption>Caminho mínimo, achado pela BFS (2 arestas)</figcaption></figure>
+</div>
+<div class="callout key"><span class="lbl">3 · "Existe caminho de s a t com no máximo k arestas?"</span>
+  <ul>
+    <li><b>Se SIM</b> — convenço mostrando o próprio caminho (um <i>certificado</i> que se verifica em O(k)).</li>
+    <li><b>Se NÃO</b> — convenço mostrando que o conjunto de vértices <b>alcançáveis com até k arestas</b> (calculado camada a camada) <b>não contém t</b>.</li>
+  </ul></div>
+
+<h3>Busca em largura (BFS)</h3>
+<ol>
+  <li>Itera <b>I = 1 … |V|</b>;</li>
+  <li>a cada iteração encontra todos os vértices a distância <b>até I</b> da raiz (expande "por camadas");</li>
+  <li>se chegou no destino, <b>para</b>.</li>
+</ol>
+<p>Implementação com uma <b>fila</b> (estrutura de dados <code>queue_t</code>, entrega da aula): vértices mais próximos da raiz saem primeiro (FIFO). O vetor <code>pred</code> reconstrói o caminho.</p>
+<pre class="pseudo"><code>BFS(G, s, t)
+    dist[v] &lt;- -1 e pred[v] &lt;- -1 PARA TODO v      # -1 = não alcançado
+    dist[s] &lt;- 0;  pred[s] &lt;- s
+    ENFILEIRA(fila, s)
+    ENQUANTO fila NÃO VAZIA E dist[t] = -1 FAÇA
+        u &lt;- DESENFILEIRA(fila)
+        PARA CADA VIZINHO v DE u FAÇA
+            SE dist[v] = -1 ENTÃO                  # primeira vez que vemos v
+                dist[v] &lt;- dist[u] + 1
+                pred[v] &lt;- u
+                ENFILEIRA(fila, v)
+    PREENCHA path USANDO pred
+    DEVOLVA path, dist[t]</code></pre>
+<h4>Simulação: BFS de A até G</h4>
+<div class="scroll" data-trace="bfs" data-g="s_bfs" data-s="A" data-t="G"></div>
+<p>A fila sempre guarda vértices em ordem não decrescente de distância; por isso a <b>primeira</b> vez que alcançamos um vértice já é pelo caminho mais curto. Para A→G: <code>dist[G] = 2</code>, caminho A, F, G.</p>
+
+<h3>A fila circular</h3>
+<p>Como cada vértice entra na fila <b>no máximo uma vez</b>, um vetor de capacidade <b>|V|</b> basta. Para não "andar" pelo vetor, usamos índices <b>módulo a capacidade</b>:</p>
+<ul>
+  <li><code>ini</code> = posição do próximo a sair; <code>tam</code> = quantos elementos há; <code>cap</code> = capacidade.</li>
+  <li><b>enfileira(x)</b>: <code>dados[(ini + tam) % cap] = x; tam++;</code></li>
+  <li><b>desenfileira()</b>: <code>x = dados[ini]; ini = (ini + 1) % cap; tam--;</code></li>
+  <li>Vazia ⇔ <code>tam == 0</code>; cheia ⇔ <code>tam == cap</code>. Ambas as operações são <b>O(1)</b>.</li>
+</ul>
+<pre data-test="c3"><code>/* BFS em matriz de 0/1. Devolve o nº de arestas do caminho mínimo (-1 se não há). */
+int bfs(double **A, int V, int s, int t, int *pred, int *dist) {
+    int *fila = malloc(V * sizeof(int));          /* fila circular de capacidade V */
+    int ini = 0, tam = 0;
+    for (int i = 0; i &lt; V; i++) { dist[i] = -1; pred[i] = -1; }
+    dist[s] = 0; pred[s] = s;
+    fila[(ini + tam) % V] = s; tam++;             /* enfileira s */
+    while (tam &gt; 0 &amp;&amp; dist[t] == -1) {
+        int u = fila[ini]; ini = (ini + 1) % V; tam--;   /* desenfileira */
+        for (int v = 0; v &lt; V; v++)
+            if (A[u][v] != 0 &amp;&amp; dist[v] == -1) {
+                dist[v] = dist[u] + 1; pred[v] = u;
+                fila[(ini + tam) % V] = v; tam++;        /* enfileira v */
+            }
+    }
+    free(fila);
+    return dist[t];
+}
+
+/* Reconstrói o caminho s..t a partir de pred; devolve o nº de vértices (0 se não há). */
+int monta_caminho(int *pred, int s, int t, int *path) {
+    if (pred[t] == -1) return 0;
+    int n = 0;
+    for (int v = t; v != s; v = pred[v]) path[n++] = v;
+    path[n++] = s;
+    for (int i = 0; i &lt; n / 2; i++) { int x = path[i]; path[i] = path[n-1-i]; path[n-1-i] = x; }
+    return n;
+}</code></pre>
+<div class="callout warn"><span class="lbl">Cuidado</span>
+  <p>BFS minimiza o <b>número de arestas</b>, não a soma dos pesos. Em grafos com pesos ela pode devolver o caminho errado (próxima seção). <span class="tag c">complemento</span> Custo com matriz: <b>O(V²)</b> (O(V + E) com listas de adjacência).</p>
+</div>
+</section>
+
+<!-- ===================== 5. DIJKSTRA ===================== -->
+<section id="dijkstra">
+<h2><span class="num">5</span>Caminhos mínimos com pesos: Dijkstra e min-heap</h2>
+<p>Agora o "tamanho" de um caminho é a <b>soma dos pesos</b> das arestas. Perguntas do slide e suas respostas:</p>
+
+<h3>Por que BFS (e variações ingênuas) não servem?</h3>
+<div class="grid2">
+  <div>
+    <div class="callout key"><span class="lbl">A BFS funciona com pesos? Não.</span>
+      <p>De A a D, a BFS acha A→D (1 aresta, custo <b>10</b>), mas A→B→C→D custa <b>6</b>.</p></div>
+    <figure class="fig"><div data-g="s_bfsfail"></div></figure>
+  </div>
+  <div>
+    <div class="callout key"><span class="lbl">"Pegar as menores arestas primeiro"? Não.</span>
+      <p>De A a D, a menor aresta (1) leva a B e depois a D por 10: custo <b>11</b>. O ótimo é A→C→D: <b>5</b>. Olhar só a aresta ignora o que já foi gasto até chegar ali.</p></div>
+    <figure class="fig"><div data-g="s_greedy"></div></figure>
+  </div>
+</div>
+<div class="callout ok"><span class="lbl">"Pegar os vértices mais próximos (da fonte) primeiro"? Sim!</span>
+  <p>Essa é a ideia do <b>algoritmo de Dijkstra</b>: o critério é a <b>distância acumulada desde a fonte</b>, não o peso da aresta isolada.</p></div>
+
+<h3>Algoritmo de Dijkstra</h3>
+<ul>
+  <li>Menor caminho em grafos com <b>pesos não negativos</b>.</li>
+  <li>Ideia central: <b>iterativamente pegar o vértice mais próximo da fonte</b>.</li>
+  <li>Ao <b>processar</b> um vértice, a distância até ele <b>não muda mais</b>.</li>
+</ul>
+<p><b>Entradas:</b> <span class="math">G = (V, E)</span> direcionado com pesos não negativos numa matriz quadrada <span class="math">P</span>; <span class="math">s, t ∈ V</span> (fonte e destino). <b>Saída:</b> array <code>path</code> com o caminho de <span class="math">s</span> até <span class="math">t</span> (ou vazio ∅ se não há) e o tamanho (custo) do caminho.</p>
+<p><b>Estruturas auxiliares:</b></p>
+<ul>
+  <li><code>dist</code> — distância (mínima conhecida) da fonte até cada vértice; inicia em <b>∞</b>.</li>
+  <li><code>pred</code> — predecessor de cada vértice no melhor caminho; inicia em <b>−1</b>.</li>
+  <li><code>h</code> — conjunto de vértices <b>já alcançados mas ainda não processados</b> (essencial para um algoritmo rápido).</li>
+</ul>
+<p><b>Simulação do handout (4 passos):</b> (1) selecione o vértice <b>não visitado K de menor distância</b> à fonte; (2) para cada vizinho de K, atualize a distância se passar por K for melhor (<i>relaxamento</i>); (3) marque K como visitado; (4) continue até não haver vértices não visitados <b>ou até chegar ao destino</b>.</p>
+<pre class="pseudo"><code>dist[s] &lt;- 0
+pred[s] &lt;- s
+INSERE s EM h
+
+PARA i=1 até |V| FAÇA
+    k &lt;- elemento em h com menor dist
+
+    PARA CADA VIZINHO j DE k FAÇA
+        distK &lt;- dist[k] + P[k, j]
+        SE distK &lt; dist[j] ENTÃO
+            dist[j] &lt;- distK
+            pred[j] &lt;- k
+            INSERE j EM h        # não faz nada se já estiver em h
+        FIM
+    FIM
+FIM
+
+PREENCHA path USANDO O ARRAY pred
+DEVOLVA path, dist[t]</code></pre>
+<p>(O elemento <code>k</code> sai de <code>h</code> ao ser processado. Se <code>h</code> esvaziar antes, o resto do grafo é inalcançável e <code>dist[t] = ∞</code> ⇒ não há caminho.)</p>
+
+<h4>Simulação: fonte D, destino A</h4>
+<div class="grid2">
+  <figure class="fig"><div data-g="s_dij" data-opts='{"nodeClass":{"D":"start","A":"end"},"edgeClass":{"D>F":"hl","F>A":"hl"},"nodeSub":{"D":"0","E":"2","C":"3","F":"4","A":"5"}}'></div><figcaption>Número abaixo do vértice = dist final. Caminho mínimo D → F → A (custo 5)</figcaption></figure>
+  <div>
+    <p>Passo a passo:</p>
+    <ol>
+      <li>h = {D}: processa D → C=3, F=4, E=2.</li>
+      <li>menor é E (2): A = 2+5 = 7 (alcançado).</li>
+      <li>depois C (3): A via C = 3+3 = 6 &lt; 7 → atualiza.</li>
+      <li>depois F (4): A via F = 4+1 = <b>5</b> &lt; 6 → atualiza, pred[A] = F.</li>
+      <li>processa A (menor de h) — destino alcançado, para.</li>
+    </ol>
+  </div>
+</div>
+<div class="scroll" data-trace="dijkstra" data-g="s_dij" data-s="D" data-t="A"></div>
+<p>Reconstrução: <code>pred[A] = F</code>, <code>pred[F] = D</code>, <code>pred[D] = D</code> (a fonte) ⇒ caminho <b>D, F, A</b>; custo <code>dist[A] = 5</code>.</p>
+<div class="callout warn"><span class="lbl">Pegadinha</span><p>Os três caminhos de D até A (via C, E ou F) têm <b>2 arestas</b>, mas custos <b>6, 7 e 5</b>. Quem decide é o <b>custo acumulado</b>, não o número de arestas — por isso a BFS não resolve este problema.</p></div>
+
+<h3>Complexidade com vetor</h3>
+<ul>
+  <li>Achar "o elemento de <code>h</code> com menor <code>dist</code>" guardando <code>h</code> num vetor: <b>O(V)</b>; faço isso no máximo <b>V</b> vezes ⇒ <b>O(V²)</b>.</li>
+  <li><code>distK</code> é calculado no máximo <b>E</b> vezes (cada aresta é relaxada uma vez) ⇒ O(E).</li>
+  <li><b>Total: O(E + V²) = O(V²)</b> (pois E ≤ V²).</li>
+</ul>
+<pre data-test="c4"><code>/* Dijkstra com matriz P de pesos (sem aresta = INFINITY), versão O(V^2).
+   Devolve dist[t] (INFINITY se não há caminho); preenche pred e dist. */
+double dijkstra(double **P, int V, int s, int t, int *pred, double *dist) {
+    int *done = calloc(V, sizeof(int));           /* 1 = já processado */
+    for (int i = 0; i &lt; V; i++) { dist[i] = INFINITY; pred[i] = -1; }
+    dist[s] = 0; pred[s] = s;
+    for (int it = 0; it &lt; V; it++) {
+        int k = -1;                               /* k = menor dist em h = alcançado e não processado */
+        for (int v = 0; v &lt; V; v++)
+            if (!done[v] &amp;&amp; dist[v] &lt; INFINITY &amp;&amp; (k == -1 || dist[v] &lt; dist[k])) k = v;
+        if (k == -1) break;                       /* h vazio: o resto é inalcançável */
+        done[k] = 1;
+        if (k == t) break;                        /* destino processado: dist[t] é definitiva */
+        for (int j = 0; j &lt; V; j++)
+            if (P[k][j] != INFINITY) {            /* j é vizinho de k */
+                double distK = dist[k] + P[k][j];
+                if (distK &lt; dist[j]) { dist[j] = distK; pred[j] = k; }
+            }
+    }
+    free(done);
+    return dist[t];
+}</code></pre>
+
+<h3>Pesos negativos: o Dijkstra quebra</h3>
+<p>O handout mostra o que acontece se houver pesos negativos (nas definições da disciplina todo peso é ≥ 0). A premissa "ao processar um vértice sua distância não muda mais" deixa de valer.</p>
+<div class="grid2">
+  <div>
+    <figure class="fig"><div data-g="s_neg1" data-opts='{"nodeClass":{"A":"start","B":"end"}}'></div></figure>
+    <p><b>Fonte A, destino B.</b> Dijkstra processa C (1) e depois B com <code>dist[B] = 2</code> e <b>para</b> (destino processado). Mas A→D→B custa 100 + (−150) = <b>−50</b> &lt; 2: a resposta está <b>errada</b>.</p>
+  </div>
+  <div>
+    <figure class="fig"><div data-g="s_neg2" data-opts='{"nodeClass":{"A":"start","B":"end"},"edgeClass":{"A>D":"hl","D>F":"hl","F>A":"hl"}}'></div></figure>
+    <p><b>Ciclo negativo</b> A→D→F→A: 10 − 6 − 6 = <b>−2</b>. Cada volta no ciclo diminui o custo, então <b>não existe</b> menor caminho até B (tenderia a −∞). Dijkstra perde qualquer garantia: as distâncias dos vértices do ciclo continuam diminuindo, e a implementação pode devolver um valor errado ou nunca terminar.</p>
+  </div>
+</div>
+<div class="callout key"><span class="lbl">Regra</span><p>Dijkstra só é correto com <b>pesos não negativos</b>. Com pesos negativos é preciso outro algoritmo (fora do escopo desta matéria).</p></div>
+
+<h3>Min-heap</h3>
+<p>Para pegar "o de menor <code>dist</code>" mais rápido que O(V), usamos um <b>min-heap</b>.</p>
+<div class="callout def"><span class="lbl">Propriedades do min-heap</span>
+  <ol>
+    <li>todo nó tem <b>no máximo dois filhos</b>;</li>
+    <li>é <b>"completo" à esquerda</b> (todos os níveis cheios, exceto possivelmente o último, preenchido da esquerda para a direita);</li>
+    <li>o valor de um nó é <b>menor que</b> (≤) o de seus filhos ⇒ o <b>menor valor está na raiz</b>.</li>
+  </ol>
+  <p><b>Operações:</b> <code>INSERE(H, V)</code> e <code>MENOR(H)</code> (devolve o menor valor <u>e o remove</u>). O <b>max-heap</b> é a versão alternativa: cada nó é <i>maior</i> que os filhos (raiz = máximo).</p>
+</div>
+<h4>Representação como array (índices a partir de 0)</h4>
+<p>Nó no índice <span class="math">i</span> → <b>filhos em <span class="math">2i + 1</span> e <span class="math">2i + 2</span></b>; <b>pai em <span class="math">(i − 1) // 2</span></b> (divisão inteira). O heap é guardado por níveis, da esquerda para a direita.</p>
+<div class="grid2">
+  <div>
+    <h5>INSERE</h5>
+    <ol><li>colocar <b>no final</b> do heap;</li><li><b>trocar com o pai</b> se for menor;</li><li>repetir o passo 2 até não dar mais (sobe até a raiz, no pior caso).</li></ol>
+  </div>
+  <div>
+    <h5>MENOR / REMOVE</h5>
+    <ol><li><b>trocar</b> o elemento 0 (raiz) com o <b>último</b> elemento;</li><li><b>diminuir</b> o tamanho do heap (o antigo menor sai);</li><li><b>trocar a raiz com o menor dos filhos</b> até não dar mais (desce).</li></ol>
+  </div>
+</div>
+<div class="callout key"><span class="lbl">Complexidade</span><p>A altura do heap é ⌊log₂ N⌋ ⇒ <b>INSERE e MENOR custam O(log N)</b>. Ver o menor sem remover é O(1).</p></div>
+
+<h4>Exercícios do handout resolvidos: heap <code>[1, 5, 9, 10, 44, 11, 44, 13, 55, 46]</code></h4>
+<p>Representação em array do heap desenhado no handout: <code>[1, 5, 9, 10, 44, 11, 44, 13, 55, 46]</code>.</p>
+<div class="fig" data-trace="heap" data-arr="1,5,9,10,44,11,44,13,55,46" data-op="pop"></div>
+<div class="fig" data-trace="heap" data-arr="1,5,9,10,44,11,44,13,55,46" data-op="insert" data-val="3"></div>
+
+<h3>Dijkstra melhorado com min-heap</h3>
+<p>No heap guardamos <b>pares (dist, vértice)</b>, usando <code>dist</code> como valor de comparação. Em vez de "atualizar" a prioridade de um vértice, <b>inserimos um novo par</b> e descartamos pares velhos quando eles saem.</p>
+<pre class="pseudo"><code>INSERE(h, (0, s))      # dist[s] &lt;- 0; pred[s] &lt;- s
+ENQUANTO TAM(h) &gt; 0 FAÇA
+
+    _, k &lt;- MENOR(h)                    # pega o com menor dist
+    SE k já foi visitado ENTÃO continua loop FIM
+
+    PARA CADA VIZINHO j DE k FAÇA
+        distK &lt;- dist[k] + P[k, j]
+        SE distK &lt; dist[j] ENTÃO
+            dist[j] &lt;- distK
+            pred[j] &lt;- k
+            INSERE(h, (distK, j))        # insere o par (dist, índice),
+                                         # usando dist como valor
+        FIM
+    FIM
+FIM</code></pre>
+<p><b>Por que o <code>SE k já foi visitado</code>?</b> Um mesmo vértice pode entrar várias vezes no heap (cada vez que achamos um caminho melhor). O par com a <b>menor</b> distância sai primeiro; os pares antigos (maiores) que saírem depois são <b>obsoletos</b> e devem ser ignorados.</p>
+<h4>Simulação com heap (fonte D)</h4>
+<div class="scroll" data-trace="dijkstraheap" data-g="s_dij" data-s="D"></div>
+<p>Note o par obsoleto descartado: A entrou com 7, depois com 6 e depois com 5; só o par (5, A) conta.</p>
+
+<h4>Complexidade com heap</h4>
+<ul>
+  <li><code>INSERE</code>: <b>O(log N)</b>; <code>MENOR</code>: <b>O(log N)</b>.</li>
+  <li>O laço externo roda <b>no máximo E vezes</b> — <i>por quê?</i> Cada passada remove um par do heap e só inserimos um par a cada <b>relaxamento bem-sucedido</b>, que ocorre no máximo uma vez por aresta (+1 par inicial) ⇒ há no máximo ≈ E pares para remover.</li>
+  <li>O heap tem no máximo E pares e log E ≤ log V² = 2 log V ⇒ cada operação é O(log V).</li>
+  <li><b>Total: O(E log V).</b></li>
+</ul>
+<table class="tbl">
+  <tr><th>Versão</th><th>Custo</th><th>Melhor quando…</th></tr>
+  <tr><td>vetor para achar o menor</td><td>O(V²)</td><td>grafo <b>denso</b> (E ≈ V²): V² &lt; V² log V</td></tr>
+  <tr><td>min-heap</td><td>O(E log V)</td><td>grafo <b>esparso</b> (E ≈ V): V log V ≪ V²</td></tr>
+</table>
+<p><span class="tag c">complemento</span> Com matriz de adjacências, descobrir os vizinhos de k custa O(V) por vértice, então na prática há um termo O(V²) a mais; a análise dos slides conta só os relaxamentos (E) e as operações do heap.</p>
+</section>
+
+<!-- ===================== 6. REVISÃO FINAL ===================== -->
+<section id="revisao">
+<h2><span class="num">6</span>Revisão final</h2>
+
+<h3>Tabela-resumo</h3>
+<div class="scroll">
+<table class="tbl">
+  <tr><th>Problema</th><th>Algoritmo</th><th>Estrutura</th><th>Custo (matriz)</th><th>Observação</th></tr>
+  <tr><td>Contar/identificar componentes</td><td>DFS (uma por componente)</td><td>recursão + <code>LABELS</code></td><td>O(V²) <span class="tag c">compl.</span></td><td>grafo não direcionado; 1 ≤ #comp ≤ |V|</td></tr>
+  <tr><td>Menor caminho, sem pesos</td><td>BFS</td><td>fila (circular)</td><td>O(V²) <span class="tag c">compl.</span></td><td>minimiza nº de arestas</td></tr>
+  <tr><td>Menor caminho, pesos ≥ 0</td><td>Dijkstra (vetor)</td><td><code>dist</code>, <code>pred</code>, <code>h</code></td><td><b>O(V²)</b></td><td>melhor em grafos densos</td></tr>
+  <tr><td>Menor caminho, pesos ≥ 0</td><td>Dijkstra (min-heap)</td><td>min-heap de (dist, v)</td><td><b>O(E log V)</b></td><td>melhor em grafos esparsos</td></tr>
+  <tr><td>INSERE / MENOR no heap</td><td>—</td><td>array</td><td>O(log N)</td><td>filhos 2i+1, 2i+2; pai (i−1)//2</td></tr>
+  <tr><td>Testar aresta (i, j)</td><td>—</td><td>matriz</td><td>O(1)</td><td>memória O(V²)</td></tr>
+</table>
+</div>
+
+<h3>Receitas para a prova</h3>
+<div class="cheat">
+<div class="callout def"><span class="lbl">Ler/escrever a matriz</span><p>Linha = origem, coluna = destino. Aresta <span class="math">v→w</span> ⇒ <code>A[v][w]</code>. Sem pesos: 1/0; com pesos: peso/∞. Não direcionado ⇒ simétrica. Grau de saída = soma da linha; grau de entrada = soma da coluna.</p></div>
+<div class="callout def"><span class="lbl">Simular DFS</span><p>Marque o vértice ao <b>entrar</b>; percorra vizinhos em ordem alfabética; só desça em vizinho <b>não visitado</b>; ao esgotar os vizinhos, <b>volte</b>. Visitado ≠ predecessor ⇒ ciclo. Vértices não numerados ⇒ outros componentes.</p></div>
+<div class="callout def"><span class="lbl">Simular BFS</span><p>Tabela com colunas <i>desenfileira / novos / fila</i>. Marque <code>dist</code> e <code>pred</code> ao <b>enfileirar</b>. Pare ao alcançar o destino. Caminho = seguir <code>pred</code> de t até s.</p></div>
+<div class="callout def"><span class="lbl">Simular Dijkstra</span><p>Tabela <code>dist</code>/<code>pred</code>/<code>h</code>. Em cada passo: escolha em <code>h</code> o de menor <code>dist</code> (esse fica <b>definitivo</b>), relaxe seus vizinhos, atualize só se <b>menor</b> (empate não atualiza). Pare ao processar o destino.</p></div>
+<div class="callout def"><span class="lbl">Simular heap</span><p><b>INSERE</b>: põe no fim e sobe trocando com o pai enquanto for menor. <b>MENOR</b>: devolve a raiz, move o último para a raiz e desce trocando com o <i>menor</i> filho. Escreva sempre o array depois.</p></div>
+<div class="callout def"><span class="lbl">Modelar um problema</span><p>Responda as 4 perguntas: vértice? aresta? direção? peso? Depois traduza a pergunta do enunciado: "isolado?" → componentes; "menor nº de passos" → BFS; "menor custo/tempo/distância" → Dijkstra.</p></div>
+</div>
+
+<h3>Pegadinhas clássicas</h3>
+<ol>
+  <li><b>BFS ≠ Dijkstra:</b> BFS minimiza o nº de arestas; só é correta para o menor <i>custo</i> quando todas as arestas são equivalentes.</li>
+  <li><b>DFS não encontra o menor caminho</b> — encontra algum caminho.</li>
+  <li><b>Dijkstra exige pesos ≥ 0</b>; com pesos negativos o resultado pode estar errado (e ciclo negativo ⇒ nem existe mínimo).</li>
+  <li>Matriz com pesos usa <b>∞</b> (<code>INFINITY</code>) para "sem aresta", não 0; sem pesos usa 0.</li>
+  <li><code>malloc</code> não zera: <b>inicialize</b> a matriz. E libere em <b>dois níveis</b> (linhas, depois o array de ponteiros).</li>
+  <li>Componentes: <b>mínimo 1, máximo |V|</b>; os rótulos podem sair numerados em ordem diferente e ainda estar corretos.</li>
+  <li>Índices do heap (0-based): filhos <b>2i+1 e 2i+2</b>, pai <b>(i−1)//2</b>. O heap <b>não é um vetor ordenado</b> — só garante pai ≤ filhos.</li>
+  <li>Dijkstra com heap: <b>pares obsoletos</b> saem do heap depois; por isso o teste "já visitado".</li>
+  <li>Grafo <b>não direcionado</b> ⇒ matriz simétrica e grau único; cuidado ao contar arestas (cada linha desenhada vale 2 pares em E).</li>
+  <li>Complexidades: Dijkstra <b>O(V²)</b> (vetor) × <b>O(E log V)</b> (heap); INSERE/MENOR <b>O(log N)</b>.</li>
+</ol>
+
+<h3>Checklist de revisão <small class="legend">(clique para marcar)</small></h3>
+<ul class="check" id="checklist">
+  <li>Escrevo a definição formal de grafo e diferencio direcionado/não direcionado, com/sem pesos.</li>
+  <li>Calculo graus de entrada/saída e monto a matriz de adjacências (com ∞ nos pesos).</li>
+  <li>Respondo as 4 perguntas de modelagem para um problema novo.</li>
+  <li>Escrevo em C a alocação, inicialização e liberação de uma matriz <code>double **</code>.</li>
+  <li>Defino caminho e componente conexo; sei os limites (1 e |V|).</li>
+  <li>Simulo uma DFS (ordem alfabética) e detecto ciclos pelo "visitado ≠ predecessor".</li>
+  <li>Escrevo IDENTIFICA-COMPONENTES (inicialização de LABELS, uma DFS por componente).</li>
+  <li>Explico por que a DFS não dá o menor caminho e simulo uma BFS com fila.</li>
+  <li>Explico como funciona a fila circular (índices módulo a capacidade).</li>
+  <li>Explico por que BFS e "menor aresta primeiro" falham com pesos.</li>
+  <li>Simulo Dijkstra com <code>dist</code>/<code>pred</code>/<code>h</code> e reconstruo o caminho.</li>
+  <li>Explico por que Dijkstra falha com pesos negativos (exemplo do −150).</li>
+  <li>Executo INSERE e MENOR num min-heap e escrevo o array; conheço 2i+1, 2i+2, (i−1)//2.</li>
+  <li>Deduzo O(V²) e O(E log V) e sei quando cada um é melhor.</li>
+  <li>Fiz a <a href="prova.html">prova modelo</a> e revisei as questões que errei.</li>
+</ul>
+<p><a class="cta" href="prova.html">Ir para a prova final modelo →</a></p>
+</section>
+
+</main>
+</div>
+<footer>Resumo baseado nos slides e handouts de Igor Montagner (Insper — Algoritmos e Estruturas de Dados 2026/02). Material de estudo não oficial.</footer>
+
+<script src="assets/algos.js"></script>
+<script src="assets/graphs.js"></script>
+<script src="assets/viz.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
