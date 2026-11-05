@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prova final modelo — Grafos | Algoritmos e Estruturas de Dados</title>
+<meta name="description" content="Prova final modelo de grafos (DFS, BFS, Dijkstra, min-heap) com correção automática e gabarito comentado.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html">Grafos<span>.</span>AED</a>
+  <nav>
+    <a href="index.html">Resumo</a>
+    <a class="active" href="prova.html">Prova modelo</a>
+    <button class="btn-ghost" id="themeBtn" aria-label="Alternar tema claro/escuro">Tema</button>
+  </nav>
+</header>
+
+<div class="exam">
+  <section class="examhead">
+    <div class="meta" style="font:600 13px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Algoritmos e Estruturas de Dados · Simulado</div>
+    <h1>Prova final modelo — Grafos</h1>
+    <p>21 questões · 100 pontos · duração sugerida: 2 horas. Cobre todo o conteúdo do <a href="index.html">resumo</a>: definições e matriz de adjacências, representação em C, DFS e componentes conexas, BFS, Dijkstra e min-heap.</p>
+    <div class="rules">
+      <p><b>Parte A (33 pts)</b> — 11 questões de múltipla escolha e V/F, com correção automática.</p>
+      <p><b>Parte B (42 pts)</b> — 6 questões de aplicação (simulações e cálculos). Resolva no papel, confira o gabarito e atribua sua nota.</p>
+      <p><b>Parte C (25 pts)</b> — 4 questões de código, modelagem e complexidade.</p>
+      <p>Dica: faça primeiro sem consultar o resumo, com o cronômetro ligado; só depois confira e revise os tópicos que errou. Os gabaritos das simulações são calculados pelos próprios algoritmos do site.</p>
+    </div>
+  </section>
+
+  <div class="statusbar" id="statusbar">
+    <button class="btn alt sm" id="timerBtn">▶ Cronômetro</button>
+    <span class="timer" id="timer">2:00:00</span>
+    <div class="prog" title="Questões respondidas"><i id="prog"></i></div>
+    <span id="progTxt" style="font:600 13px var(--sans);color:var(--muted)">0/21</span>
+    <span class="grow"></span>
+    <button class="btn alt sm" id="resetBtn">Reiniciar</button>
+    <button class="btn sm" id="finishBtn">Finalizar e corrigir</button>
+  </div>
+
+  <div class="result" id="result"></div>
+  <div id="questions"></div>
+  <div class="result" id="result2"></div>
+
+  <p style="text-align:center;margin-top:30px"><button class="btn" id="finishBtn2">Finalizar e corrigir</button></p>
+</div>
+
+<script src="assets/algos.js"></script>
+<script src="assets/graphs.js"></script>
+<script src="assets/viz.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/prova.js"></script>
+</body>
+</html>
